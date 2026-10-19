@@ -168,11 +168,17 @@
       Current streak: <strong id="streak">0</strong>
     </p>
 
-    <section aria-labelledby="question" aria-live="polite">
+    <section id="quiz-screen" aria-labelledby="question" aria-live="polite">
       <h2 class="question" id="question"></h2>
       <div class="answers" id="answers"></div>
       <p class="feedback" id="feedback" role="status"></p>
       <button class="play-again" id="play-again" type="button" hidden>Play Again</button>
+    </section>
+
+    <section id="victory-screen" aria-labelledby="victory-heading" aria-live="polite" hidden>
+      <h2 class="question" id="victory-heading">Amazing work!</h2>
+      <p class="feedback">You got every question right! What a fantastic streak! 🎉</p>
+      <button class="play-again" id="victory-play-again" type="button">Play Again</button>
     </section>
   </main>
 
@@ -224,21 +230,34 @@
     const answersElement = document.querySelector("#answers");
     const streakElement = document.querySelector("#streak");
     const feedbackElement = document.querySelector("#feedback");
+    const quizScreen = document.querySelector("#quiz-screen");
+    const victoryScreen = document.querySelector("#victory-screen");
     const playAgainButton = document.querySelector("#play-again");
+    const victoryPlayAgainButton = document.querySelector("#victory-play-again");
     let streak = 0;
-    let previousQuestionIndex = -1;
+    let questionQueue = [];
 
-    function chooseQuestion() {
-      let index;
-      do {
-        index = Math.floor(Math.random() * questions.length);
-      } while (questions.length > 1 && index === previousQuestionIndex);
-      previousQuestionIndex = index;
-      return questions[index];
+    function startRun() {
+      streak = 0;
+      streakElement.textContent = "0";
+      questionQueue = questions.map((_, index) => index);
+      for (let index = questionQueue.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [questionQueue[index], questionQueue[randomIndex]] = [questionQueue[randomIndex], questionQueue[index]];
+      }
+      victoryScreen.hidden = true;
+      quizScreen.hidden = false;
+      showQuestion();
     }
 
     function showQuestion() {
-      const current = chooseQuestion();
+      if (questionQueue.length === 0) {
+        quizScreen.hidden = true;
+        victoryScreen.hidden = false;
+        return;
+      }
+
+      const current = questions[questionQueue.pop()];
       questionElement.textContent = current.question;
       answersElement.replaceChildren();
       feedbackElement.textContent = "";
@@ -267,7 +286,9 @@
       if (answer === correctAnswer) {
         streak += 1;
         streakElement.textContent = String(streak);
-        feedbackElement.textContent = "Correct! Here comes the next question.";
+        feedbackElement.textContent = questionQueue.length === 0
+          ? "Correct! You've answered every question!"
+          : "Correct! Here comes the next question.";
         window.setTimeout(showQuestion, 700);
         return;
       }
@@ -278,13 +299,10 @@
       playAgainButton.hidden = false;
     }
 
-    playAgainButton.addEventListener("click", () => {
-      streak = 0;
-      streakElement.textContent = "0";
-      showQuestion();
-    });
+    playAgainButton.addEventListener("click", startRun);
+    victoryPlayAgainButton.addEventListener("click", startRun);
 
-    showQuestion();
+    startRun();
   </script>
 </body>
 </html>
